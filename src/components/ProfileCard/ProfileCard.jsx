@@ -1,4 +1,8 @@
 import React, { useEffect, useRef, useCallback, useMemo } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+import { useReveal } from "../../hooks/useReveal";
+import { useReducedMotion, getMotionConfig } from "../../hooks/useReducedMotion";
 import "./ProfileCard.css";
 
 const DEFAULT_BEHIND_GRADIENT =
@@ -48,9 +52,17 @@ const ProfileCardComponent = ({
 }) => {
   const wrapRef = useRef(null);
   const cardRef = useRef(null);
+  const prefersReducedMotion = useReducedMotion();
+  const revealRef = useReveal({ direction: 'depth', duration: 1.2 });
 
+  // Enhanced 3D tilt with GSAP
+  const tiltRef = useRef({
+    rotateX: gsap.quickTo(cardRef, "rotateX", { duration: 0.3, ease: "power2.out" }),
+    rotateY: gsap.quickTo(cardRef, "rotateY", { duration: 0.3, ease: "power2.out" }),
+    translateZ: gsap.quickTo(cardRef, "z", { duration: 0.3, ease: "power2.out" })
+  });
   const animationHandlers = useMemo(() => {
-    if (!enableTilt) return null;
+    if (!enableTilt || prefersReducedMotion) return null;
 
     let rafId = null;
 
@@ -64,6 +76,10 @@ const ProfileCardComponent = ({
       const centerX = percentX - 50;
       const centerY = percentY - 50;
 
+      // Enhanced 3D calculations
+      const rotateX = -(centerY / 8);
+      const rotateY = centerX / 8;
+      const translateZ = Math.min(16, Math.hypot(centerX, centerY) / 4);
       const properties = {
         "--pointer-x": `${percentX}%`,
         "--pointer-y": `${percentY}%`,
@@ -76,13 +92,20 @@ const ProfileCardComponent = ({
         )}`,
         "--pointer-from-top": `${percentY / 100}`,
         "--pointer-from-left": `${percentX / 100}`,
-        "--rotate-x": `${round(-(centerX / 5))}deg`,
-        "--rotate-y": `${round(centerY / 4)}deg`,
+        "--rotate-x": `${round(rotateX)}deg`,
+        "--rotate-y": `${round(rotateY)}deg`,
       };
 
       Object.entries(properties).forEach(([property, value]) => {
         wrap.style.setProperty(property, value);
       });
+
+      // Apply GSAP 3D transforms
+      if (tiltRef.current && !prefersReducedMotion) {
+        tiltRef.current.rotateX(rotateX);
+        tiltRef.current.rotateY(rotateY);
+        tiltRef.current.translateZ(translateZ);
+      }
     };
 
     const createSmoothAnimation = (duration, startX, startY, card, wrap) => {
@@ -118,8 +141,34 @@ const ProfileCardComponent = ({
         }
       },
     };
-  }, [enableTilt]);
+  }, [enableTilt, prefersReducedMotion]);
 
+  // Entry animation
+  useGSAP(() => {
+    if (!cardRef.current || prefersReducedMotion) return;
+
+    const motionConfig = getMotionConfig({
+      duration: 1.2,
+      ease: 'power3.out'
+    }, prefersReducedMotion);
+
+    gsap.fromTo(cardRef.current,
+      { 
+        z: -60, 
+        rotateX: 15, 
+        opacity: 0,
+        scale: 0.9 
+      },
+      { 
+        z: 0, 
+        rotateX: 0, 
+        opacity: 1,
+        scale: 1,
+        ...motionConfig,
+        delay: 0.3
+      }
+    );
+  }, { scope: cardRef });
   const handlePointerMove = useCallback(
     (event) => {
       const card = cardRef.current;
@@ -274,7 +323,10 @@ const ProfileCardComponent = ({
 
   return (
     <div
-      ref={wrapRef}
+      ref={(el) => {
+        wrapRef.current = el;
+        revealRef.current = el;
+      }}
       className={`pc-card-wrapper ${className}`.trim()}
       style={cardStyle}
     >

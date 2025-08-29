@@ -1,46 +1,29 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  useInView,
-  useMotionValue,
-  useSpring,
-  motion as Motion,
-} from "framer-motion";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+import { useReducedMotion, getMotionConfig } from "../../hooks/useReducedMotion";
 
 export default function CountUp({
   to,
   from = 0,
   direction = "up",
   delay = 0,
-  duration = 2, // hanya untuk status selesai; spring tetap fisik
+  duration = 2,
   className = "",
   startWhen = true,
   separator = "",
   onStart,
   onEnd,
-  cubic = true,
+  cubic = true
 }) {
-  const wrapperRef = useRef(null);
-
-  // mulai dari 'from' (atau 'to' kalau direction "down")
-  const motionValue = useMotionValue(direction === "down" ? to : from);
-
-  const [displayText, setDisplayText] = useState(
-    String(direction === "down" ? to : from)
-  );
+  const ref = useRef(null);
+  const numberRef = useRef({ value: direction === "down" ? to : from });
+  const [displayText, setDisplayText] = useState(String(direction === "down" ? to : from));
   const [digits, setDigits] = useState([]);
   const [isCounting, setIsCounting] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
-  // spring params (heuristik biar responsif thd duration)
-  const damping = 25 + 40 * (1 / Math.max(0.0001, duration));
-  const stiffness = 120 * (1 / Math.max(0.0001, duration));
-
-  const springValue = useSpring(motionValue, {
-    damping,
-    stiffness,
-    // catatan: useSpring nggak pakai 'ease'
-  });
-
-  const isInView = useInView(wrapperRef, { once: true, margin: "0px" });
+  const [isInView, setIsInView] = useState(false);
 
   const getDecimalPlaces = (num) => {
     const str = num.toString();
@@ -53,101 +36,95 @@ export default function CountUp({
 
   const maxDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(to));
 
-  // set tampilan awal kalau prop berubah
+  // Intersection Observer for triggering animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // GSAP Animation
+  useGSAP(() => {
+    if (!ref.current || !isInView || !startWhen) return;
+
+    const motionConfig = getMotionConfig({
+      duration,
+      ease: 'power2.out',
+      delay
+    }, prefersReducedMotion);
+
+    onStart?.();
+    setIsCounting(true);
+
+    const target = direction === "down" ? from : to;
+    
+    gsap.to(numberRef.current, {
+      value: target,
+      ...motionConfig,
+      roundProps: "value",
+      onUpdate: () => {
+        const latest = numberRef.current.value;
+        
+        const hasDecimals = maxDecimals > 0;
+        const options = {
+          useGrouping: !!separator,
+          minimumFractionDigits: hasDecimals ? maxDecimals : 0,
+          maximumFractionDigits: hasDecimals ? maxDecimals : 0,
+        };
+
+        const formattedNumber = Intl.NumberFormat("en-US", options).format(latest);
+        const formattedText = separator
+          ? formattedNumber.replace(/,/g, separator)
+          : formattedNumber;
+
+        setDisplayText(formattedText);
+        if (cubic) setDigits(formattedText.split(""));
+      },
+      onComplete: () => {
+        setIsCounting(false);
+        onEnd?.();
+      }
+    });
+  }, { dependencies: [isInView, startWhen], scope: ref });
+
+  // Set initial display
   useEffect(() => {
     const startVal = String(direction === "down" ? to : from);
     setDisplayText(startVal);
     setDigits(startVal.split(""));
   }, [from, to, direction]);
 
-  // trigger animasi saat in-view & startWhen
-  useEffect(() => {
-    if (isInView && startWhen) {
-      onStart?.();
-      setIsCounting(true);
-
-      const target = direction === "down" ? from : to;
-
-      const startId = setTimeout(() => {
-        motionValue.set(target);
-      }, delay * 1000);
-
-      const endId = setTimeout(() => {
-        setIsCounting(false);
-        onEnd?.();
-      }, (delay + duration) * 1000);
-
-      return () => {
-        clearTimeout(startId);
-        clearTimeout(endId);
-      };
-    }
-  }, [
-    isInView,
-    startWhen,
-    motionValue,
-    direction,
-    from,
-    to,
-    delay,
-    onStart,
-    onEnd,
-    duration,
-  ]);
-
-  // update tampilan setiap spring berubah
-  useEffect(() => {
-    const unsub = springValue.on("change", (latest) => {
-      const hasDecimals = maxDecimals > 0;
-      const options = {
-        useGrouping: !!separator,
-        minimumFractionDigits: hasDecimals ? maxDecimals : 0,
-        maximumFractionDigits: hasDecimals ? maxDecimals : 0,
-      };
-
-      // jangan Math.abs — biarin minus kalau ada
-      const formattedNumber = Intl.NumberFormat("en-US", options).format(
-        latest
-      );
-
-      const formattedText = separator
-        ? formattedNumber.replace(/,/g, separator)
-        : formattedNumber;
-
-      setDisplayText(formattedText);
-      if (cubic) setDigits(formattedText.split(""));
-    });
-
-    return () => unsub();
-  }, [springValue, separator, maxDecimals, cubic]);
-
-  // Selalu pasang ref di wrapper supaya useInView jalan
   return (
     <span
-      ref={wrapperRef}
+      ref={ref}
       className={`${className}`}
       style={{ display: "inline-flex" }}
     >
       {cubic && digits.length > 0 && isCounting ? (
         digits.map((digit, index) => (
-          <Motion.span
+          <span
             key={`digit-${index}-${digit}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              rotateX: [90, 0],
-              scale: [0.8, 1.2, 1],
-            }}
-            transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
+            className="digit-animation"
             style={{
               display: "inline-block",
               transformStyle: "preserve-3d",
-              backfaceVisibility: "hidden",
+              backfaceVisibility: "hidden"
             }}
           >
             {digit}
-          </Motion.span>
+          </span>
         ))
       ) : (
         <span>{displayText}</span>

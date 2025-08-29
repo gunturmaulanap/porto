@@ -56,8 +56,10 @@
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid #333;
-  transition: border-color 0.3s ease;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease);
   background: var(--card-gradient);
+  transform-style: preserve-3d;
+  will-change: transform;
 
   --mouse-x: 50%;
   --mouse-y: 50%;
@@ -66,6 +68,9 @@
 
 .chroma-card:hover {
   border-color: var(--card-border);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
 .chroma-card::before {
@@ -77,8 +82,9 @@
       transparent 70%);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.5s ease;
+  transition: opacity var(--motion-duration-normal) var(--motion-ease);
   z-index: 2;
+  transform: translateZ(1px);
 }
 
 .chroma-card:hover::before {

@@ -1,5 +1,8 @@
 import { useRef, useEffect } from "react";
 import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+import { useStaggerReveal } from "../../hooks/useReveal";
+import { useReducedMotion, getMotionConfig } from "../../hooks/useReducedMotion";
 import "./ChromaGrid.css";
 
 // Terima `onItemClick` di props
@@ -16,6 +19,12 @@ export const ChromaGrid = ({
 }) => {
   const rootRef = useRef(null);
   const fadeRef = useRef(null);
+  const prefersReducedMotion = useReducedMotion();
+  const revealRef = useStaggerReveal({ 
+    childSelector: '.chroma-card',
+    stagger: 0.1,
+    direction: 'depth'
+  });
   const setX = useRef(null);
   const setY = useRef(null);
   const pos = useRef({ x: 0, y: 0 });
@@ -23,6 +32,22 @@ export const ChromaGrid = ({
   // Gunakan `items` yang di-pass dari App.jsx, bukan data demo
   const data = items?.length ? items : [];
 
+  // Enhanced card hover with 3D lift
+  const handleCardHover = (card, isHovering) => {
+    if (prefersReducedMotion) return;
+
+    const motionConfig = getMotionConfig({
+      duration: 0.3,
+      ease: 'power2.out'
+    }, prefersReducedMotion);
+
+    gsap.to(card, {
+      z: isHovering ? 24 : 0,
+      rotateY: isHovering ? 2 : 0,
+      scale: isHovering ? 1.02 : 1,
+      ...motionConfig
+    });
+  };
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
@@ -73,7 +98,10 @@ export const ChromaGrid = ({
 
   return (
     <div
-      ref={rootRef}
+      ref={(el) => {
+        rootRef.current = el;
+        revealRef.current = el;
+      }}
       className={`chroma-grid ${className}`}
       style={
         {
@@ -89,6 +117,8 @@ export const ChromaGrid = ({
         <article
           key={i}
           className="chroma-card"
+          onMouseEnter={(e) => handleCardHover(e.currentTarget, true)}
+          onMouseLeave={(e) => handleCardHover(e.currentTarget, false)}
           onMouseMove={handleCardMove}
           // Panggil `onItemClick` saat kartu diklik dan kirim datanya
           onClick={() => onItemClick(c)}
@@ -97,6 +127,7 @@ export const ChromaGrid = ({
               "--card-border": c.borderColor || "transparent",
               "--card-gradient": c.gradient,
               cursor: "pointer", // Selalu pointer karena akan membuka modal
+              transformStyle: "preserve-3d"
             }
           }
         >

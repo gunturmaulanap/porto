@@ -1,5 +1,8 @@
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 import { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 
 import './Aurora.css';
 

@@ -1,0 +1,95 @@
+/* Navbar Styles */
+.navbar-desktop {
+  transform-style: preserve-3d;
+}
+
+.navbar-content {
+  position: relative;
+  overflow: visible;
+}
+
+.navbar-brand {
+  transform-style: preserve-3d;
+}
+
+.brand-text {
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.brand-text::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  transform: translateZ(-2px);
+  opacity: 0.3;
+  border-radius: 4px;
+}
+
+.navbar-links {
+  transform-style: preserve-3d;
+}
+
+.nav-link {
+  transform-style: preserve-3d;
+  position: relative;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass);
+  border-radius: inherit;
+  transform: translateZ(-2px);
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast) var(--motion-ease);
+}
+
+.nav-link:hover::before,
+.nav-link:focus::before {
+  opacity: 1;
+}
+
+.mobile-menu {
+  transform-style: preserve-3d;
+}
+
+.mobile-nav-link {
+  transform-style: preserve-3d;
+}
+
+.mobile-nav-link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  border-radius: inherit;
+  transform: translateZ(-2px);
+  opacity: 0.5;
+  transition: transform var(--motion-duration-fast) var(--motion-ease);
+}
+
+.mobile-nav-link:hover::before {
+  transform: translateZ(-4px);
+}
+
+.dock-item {
+  transform-style: preserve-3d;
+}
+
+.dock-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  border-radius: inherit;
+  transform: translateZ(-2px);
+  opacity: 0.6;
+  transition: transform var(--motion-duration-fast) var(--motion-ease);
+}
+
+.dock-item:hover::before {
+  transform: translateZ(-4px);
+}
