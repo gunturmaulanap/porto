@@ -1,265 +1,206 @@
-import { useState, useEffect, useRef } from "react";
-import { gsap } from 'gsap';
-import { useGSAP } from '@gsap/react';
-import { useReducedMotion, getMotionConfig } from '../hooks/useReducedMotion';
-import ThemeToggle from './ThemeToggle/ThemeToggle';
-import { FiMenu, FiX, FiHome, FiUser, FiFolderOpen, FiMail } from 'react-icons/fi';
+import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
+import { useEffect, useRef } from "react";
 
-const Navbar = ({ hidden = false }) => {
-  const navRef = useRef(null);
-  const logoRef = useRef(null);
-  const linksRef = useRef(null);
-  const mobileMenuRef = useRef(null);
-  const prefersReducedMotion = useReducedMotion();
-  
-  // ⛔ Saat hidden, jangan render apa pun
-  if (hidden) return null;
+import './Aurora.css';
 
-  const [active, setActive] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const VERT = `#version 300 es
+in vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+`;
 
-  useEffect(() => {
-    const handleScroll = () => setActive(window.scrollY > 150);
-    handleScroll(); // init posisi saat mount
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+const FRAG = `#version 300 es
+precision highp float;
 
-  // GSAP Animations
-  useGSAP(() => {
-    if (!navRef.current || prefersReducedMotion) return;
+uniform float uTime;
+uniform float uAmplitude;
+uniform vec3 uColorStops[3];
+uniform vec2 uResolution;
+uniform float uBlend;
 
-    const motionConfig = getMotionConfig({
-      duration: 1.2,
-      ease: 'power3.out'
-    }, prefersReducedMotion);
+out vec4 fragColor;
 
-    // Initial navbar animation
-    gsap.fromTo(navRef.current, 
-      { 
-        y: -100, 
-        opacity: 0,
-        rotateX: -15,
-        transformOrigin: 'center top'
-      },
-      { 
-        y: 0, 
-        opacity: 1,
-        rotateX: 0,
-        delay: 0.5,
-        ...motionConfig
-      }
-    );
+vec3 permute(vec3 x) {
+  return mod(((x * 34.0) + 1.0) * x, 289.0);
+}
 
-    // Logo 3D entrance
-    if (logoRef.current) {
-      gsap.fromTo(logoRef.current,
-        { scale: 0.8, rotateY: -20, z: -50 },
-        { scale: 1, rotateY: 0, z: 0, delay: 0.8, duration: 0.8, ease: 'back.out(1.7)' }
-      );
-    }
-
-    // Links stagger animation
-    if (linksRef.current) {
-      const links = linksRef.current.querySelectorAll('li');
-      gsap.fromTo(links,
-        { opacity: 0, y: 20, z: -30 },
-        { 
-          opacity: 1, 
-          y: 0, 
-          z: 0,
-          delay: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: 'power2.out'
-        }
-      );
-    }
-  }, { scope: navRef });
-
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-    
-    if (!prefersReducedMotion && mobileMenuRef.current) {
-      const motionConfig = getMotionConfig({
-        duration: 0.4,
-        ease: 'power2.inOut'
-      }, prefersReducedMotion);
-
-      if (!mobileMenuOpen) {
-        gsap.fromTo(mobileMenuRef.current,
-          { opacity: 0, scale: 0.95, rotateX: -10 },
-          { opacity: 1, scale: 1, rotateX: 0, ...motionConfig }
-        );
-      }
-    }
-  };
-
-  const navItems = [
-    { href: '#home', label: 'Home', icon: <FiHome /> },
-    { href: '#about', label: 'About', icon: <FiUser /> },
-    { href: '#project', label: 'Projects', icon: <FiFolderOpen /> },
-    { href: '#contact', label: 'Contact', icon: <FiMail /> }
-  ];
-
-  return (
-    <>
-    <nav 
-      ref={navRef}
-      className={`
-        navbar fixed top-0 left-0 right-0 z-50 py-4 px-6 md:px-12
-        transition-all duration-300 depth-container
-        ${active ? 'glass shadow-lg' : 'bg-transparent'}
-      `}
-      style={{
-        background: active ? 'var(--glass)' : 'transparent',
-        backdropFilter: active ? 'blur(12px)' : 'none',
-        borderBottom: active ? '1px solid var(--border)' : 'none'
-      }}
-    >
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        {/* Logo */}
-        <div ref={logoRef} className="logo depth-1">
-          <h1 
-            className="text-3xl font-bold p-1 card-3d"
-            style={{ 
-              color: 'var(--text)',
-              textShadow: '0 2px 8px rgba(0,0,0,0.3)',
-              transformStyle: 'preserve-3d'
-            }}
-          >
-            Portofolio
-          </h1>
-        </div>
-
-        {/* Desktop Menu */}
-        <ul
-          ref={linksRef}
-          className="hidden md:flex items-center gap-8"
-        >
-          {navItems.map((item, index) => (
-            <li key={item.href} className="depth-1">
-              <a 
-                href={item.href} 
-                className="
-                  relative px-4 py-2 rounded-lg font-medium
-                  transition-all duration-300 magnetic
-                  hover:bg-glass focus:bg-glass
-                  focus:outline-none focus:ring-2 focus:ring-primary/50
-                "
-                style={{ 
-                  color: 'var(--text)',
-                  transformStyle: 'preserve-3d'
-                }}
-              >
-                {item.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-
-        {/* Right Controls */}
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-          
-          {/* Hire Me CTA - Desktop */}
-          <a
-            href="#contact"
-            className="
-              hidden md:inline-flex items-center gap-2 px-6 py-3
-              rounded-full font-semibold btn-3d magnetic
-              transition-all duration-300
-              focus:outline-none focus:ring-2 focus:ring-accent/50
-            "
-            style={{
-              background: 'var(--accent)',
-              color: 'white',
-              boxShadow: 'var(--shadow)'
-            }}
-          >
-            Hire Me
-          </a>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={toggleMobileMenu}
-            className="
-              md:hidden p-3 rounded-full glass btn-3d
-              focus:outline-none focus:ring-2 focus:ring-primary/50
-            "
-            aria-label="Toggle mobile menu"
-            style={{ color: 'var(--text)' }}
-          >
-            {mobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
-          </button>
-        </div>
-      </div>
-    </nav>
-
-    {/* Mobile Menu Overlay */}
-    {mobileMenuOpen && (
-      <div 
-        className="fixed inset-0 z-40 md:hidden"
-        onClick={() => setMobileMenuOpen(false)}
-      >
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-        <div 
-          ref={mobileMenuRef}
-          className="
-            absolute top-20 left-4 right-4 p-6 rounded-2xl
-            glass depth-container
-          "
-          style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow)'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <ul className="space-y-4">
-            {navItems.map((item, index) => (
-              <li key={item.href}>
-                <a
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="
-                    flex items-center gap-3 p-4 rounded-lg
-                    transition-all duration-300 card-3d
-                    hover:bg-glass focus:bg-glass
-                    focus:outline-none focus:ring-2 focus:ring-primary/50
-                  "
-                  style={{ color: 'var(--text)' }}
-                >
-                  <span className="text-primary">{item.icon}</span>
-                  <span className="font-medium">{item.label}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-          
-          <div className="mt-6 pt-6 border-t border-border">
-            <a
-              href="#contact"
-              onClick={() => setMobileMenuOpen(false)}
-              className="
-                flex items-center justify-center gap-2 w-full p-4
-                rounded-full font-semibold btn-3d
-                transition-all duration-300
-                focus:outline-none focus:ring-2 focus:ring-accent/50
-              "
-              style={{
-                background: 'var(--accent)',
-                color: 'white'
-              }}
-            >
-              Hire Me
-            </a>
-          </div>
-        </div>
-      </div>
-    )}
-    </>
+float snoise(vec2 v){
+  const vec4 C = vec4(
+      0.211324865405187, 0.366025403784439,
+      -0.577350269189626, 0.024390243902439
   );
+  vec2 i  = floor(v + dot(v, C.yy));
+  vec2 x0 = v - i + dot(i, C.xx);
+  vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+
+  vec3 p = permute(
+      permute(i.y + vec3(0.0, i1.y, 1.0))
+    + i.x + vec3(0.0, i1.x, 1.0)
+  );
+
+  vec3 m = max(
+      0.5 - vec3(
+          dot(x0, x0),
+          dot(x12.xy, x12.xy),
+          dot(x12.zw, x12.zw)
+      ), 
+      0.0
+  );
+  m = m * m;
+  m = m * m;
+
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 ox = floor(x + 0.5);
+  vec3 a0 = x - ox;
+  m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+
+  vec3 g;
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
+}
+
+struct ColorStop {
+  vec3 color;
+  float position;
 };
 
-export default Navbar;
+#define COLOR_RAMP(colors, factor, finalColor) {              \
+  int index = 0;                                            \
+  for (int i = 0; i < 2; i++) {                               \
+     ColorStop currentColor = colors[i];                    \
+     bool isInBetween = currentColor.position <= factor;    \
+     index = int(mix(float(index), float(i), float(isInBetween))); \
+  }                                                         \
+  ColorStop currentColor = colors[index];                   \
+  ColorStop nextColor = colors[index + 1];                  \
+  float range = nextColor.position - currentColor.position; \
+  float lerpFactor = (factor - currentColor.position) / range; \
+  finalColor = mix(currentColor.color, nextColor.color, lerpFactor); \
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / uResolution;
+  
+  ColorStop colors[3];
+  colors[0] = ColorStop(uColorStops[0], 0.0);
+  colors[1] = ColorStop(uColorStops[1], 0.5);
+  colors[2] = ColorStop(uColorStops[2], 1.0);
+  
+  vec3 rampColor;
+  COLOR_RAMP(colors, uv.x, rampColor);
+  
+  float height = snoise(vec2(uv.x * 2.0 + uTime * 0.1, uTime * 0.25)) * 0.5 * uAmplitude;
+  height = exp(height);
+  height = (uv.y * 2.0 - height + 0.2);
+  float intensity = 0.6 * height;
+  
+  float midPoint = 0.20;
+  float auroraAlpha = smoothstep(midPoint - uBlend * 0.5, midPoint + uBlend * 0.5, intensity);
+  
+  vec3 auroraColor = intensity * rampColor;
+  
+  fragColor = vec4(auroraColor * auroraAlpha, auroraAlpha);
+}
+`;
+
+export default function Aurora(props) {
+  const {
+    colorStops = ["#5227FF", "#7cff67", "#5227FF"],
+    amplitude = 1.0,
+    blend = 0.5
+  } = props;
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
+  const ctnDom = useRef(null);
+
+  useEffect(() => {
+    const ctn = ctnDom.current;
+    if (!ctn) return;
+
+    const renderer = new Renderer({
+      alpha: true,
+      premultipliedAlpha: true,
+      antialias: true
+    });
+    const gl = renderer.gl;
+    gl.clearColor(0, 0, 0, 0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.canvas.style.backgroundColor = 'transparent';
+
+    let program;
+
+    function resize() {
+      if (!ctn) return;
+      const width = ctn.offsetWidth;
+      const height = ctn.offsetHeight;
+      renderer.setSize(width, height);
+      if (program) {
+        program.uniforms.uResolution.value = [width, height];
+      }
+    }
+    window.addEventListener("resize", resize);
+
+    const geometry = new Triangle(gl);
+    if (geometry.attributes.uv) {
+      delete geometry.attributes.uv;
+    }
+
+    const colorStopsArray = colorStops.map((hex) => {
+      const c = new Color(hex);
+      return [c.r, c.g, c.b];
+    });
+
+    program = new Program(gl, {
+      vertex: VERT,
+      fragment: FRAG,
+      uniforms: {
+        uTime: { value: 0 },
+        uAmplitude: { value: amplitude },
+        uColorStops: { value: colorStopsArray },
+        uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+        uBlend: { value: blend }
+      }
+    });
+
+    const mesh = new Mesh(gl, { geometry, program });
+    ctn.appendChild(gl.canvas);
+
+    let animateId = 0;
+    const update = (t) => {
+      animateId = requestAnimationFrame(update);
+      const { time = t * 0.01, speed = 1.0 } = propsRef.current;
+      program.uniforms.uTime.value = time * speed * 0.1;
+      program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
+      program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
+      const stops = propsRef.current.colorStops ?? colorStops;
+      program.uniforms.uColorStops.value = stops.map((hex) => {
+        const c = new Color(hex);
+        return [c.r, c.g, c.b];
+      });
+      renderer.render({ scene: mesh });
+    };
+    animateId = requestAnimationFrame(update);
+
+    resize();
+
+    return () => {
+      cancelAnimationFrame(animateId);
+      window.removeEventListener("resize", resize);
+      if (ctn && gl.canvas.parentNode === ctn) {
+        ctn.removeChild(gl.canvas);
+      }
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [amplitude]);
+
+  return <div ref={ctnDom} className="aurora-container" />;
+}
