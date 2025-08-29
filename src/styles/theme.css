@@ -1,0 +1,71 @@
+/* Theme System - CSS Variables for Dark/Light Mode */
+:root {
+  /* Base Colors - Dark Theme (Default) */
+  --bg: #0b0f1a;
+  --surface: #101623;
+  --text: #e6e8f0;
+  --primary: #6cf0ff;
+  --accent: #a78bfa;
+  --muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.08);
+  --glass: rgba(255, 255, 255, 0.06);
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  
+  /* 3D Depth Variables */
+  --depth-1: 4px;
+  --depth-2: 8px;
+  --depth-3: 16px;
+  --depth-4: 32px;
+  
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  
+  /* Motion Variables */
+  --motion-duration-fast: 180ms;
+  --motion-duration-normal: 360ms;
+  --motion-duration-slow: 600ms;
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* 3D Perspective */
+  --perspective: 1000px;
+  --perspective-origin: center center;
+}
+
+/* Light Theme Override */
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --text: #0b1220;
+  --primary: #0ea5e9;
+  --accent: #7c3aed;
+  --muted: #475569;
+  --border: rgba(0, 0, 0, 0.08);
+  --glass: rgba(0, 0, 0, 0.04);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-fast: 0ms;
+    --motion-duration-normal: 0ms;
+    --motion-duration-slow: 0ms;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Base Theme Application */
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color var(--motion-duration-normal) var(--motion-ease),
+              color var(--motion-duration-normal) var(--motion-ease);
+}

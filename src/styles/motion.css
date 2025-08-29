@@ -1,0 +1,113 @@
+/* 3D Motion Utilities */
+
+/* 3D Container Setup */
+.depth-container {
+  perspective: var(--perspective);
+  perspective-origin: var(--perspective-origin);
+  transform-style: preserve-3d;
+}
+
+/* 3D Card Base */
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform var(--motion-duration-normal) var(--motion-ease);
+  will-change: transform;
+}
+
+.card-3d:hover {
+  transform: translateZ(var(--depth-2));
+}
+
+/* Glass Morphism */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* Depth Layers */
+.depth-1 { transform: translateZ(var(--depth-1)); }
+.depth-2 { transform: translateZ(var(--depth-2)); }
+.depth-3 { transform: translateZ(var(--depth-3)); }
+.depth-4 { transform: translateZ(var(--depth-4)); }
+
+/* Parallax Layers */
+.parallax-slow { transform: translateZ(-100px) scale(2); }
+.parallax-medium { transform: translateZ(-50px) scale(1.5); }
+.parallax-fast { transform: translateZ(-20px) scale(1.2); }
+
+/* Magnetic Interaction */
+.magnetic {
+  transition: transform var(--motion-duration-fast) var(--motion-ease);
+  cursor: pointer;
+}
+
+/* Reveal Animation Base */
+.reveal-element {
+  opacity: 0;
+  transform: translateY(40px) translateZ(-20px);
+  will-change: transform, opacity;
+}
+
+.reveal-element.revealed {
+  opacity: 1;
+  transform: translateY(0) translateZ(0);
+}
+
+/* Floating Animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotateX(0deg); }
+  50% { transform: translateY(-10px) rotateX(2deg); }
+}
+
+.floating {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Glow Effects */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(108, 240, 255, 0.3);
+}
+
+.glow-accent {
+  box-shadow: 0 0 20px rgba(167, 139, 250, 0.3);
+}
+
+/* Button 3D Effects */
+.btn-3d {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: all var(--motion-duration-fast) var(--motion-ease);
+}
+
+.btn-3d::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  border-radius: inherit;
+  transform: translateZ(-4px);
+  opacity: 0.6;
+  transition: transform var(--motion-duration-fast) var(--motion-ease);
+}
+
+.btn-3d:hover::before {
+  transform: translateZ(-8px);
+}
+
+.btn-3d:active {
+  transform: translateZ(-2px);
+}
+
+/* Stagger Animation Classes */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.stagger-item.animate {
+  opacity: 1;
+  transform: translateY(0);
+}
